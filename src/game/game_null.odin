@@ -3,6 +3,7 @@
 package game
 
 import "base:runtime"
+import "core:mem"
 import "core:log"
 import "core:fmt"
 import "core:strings"
@@ -12,6 +13,9 @@ import rl "../../raylib"
 
 @(private="file")
 wasm_context: runtime.Context
+
+@(private="file")
+temp_allocator: WASM_Temp_Allocator
 
 @(export)
 game_init :: proc "c" () {
@@ -28,17 +32,43 @@ game_frame :: proc "c" () {
 
 @(private="file")
 create_wasm_context :: proc "contextless" () -> runtime.Context {
+	context = runtime.default_context()
+
     c: runtime.Context = runtime.default_context()
     c.allocator = rl.MemAllocator()
 
-    // Should we just also make it rl.MemAllocator()??
-    c.temp_allocator.procedure = rl.MemAllocatorProc
-    c.temp_allocator.data = nil
-
-    context = c
     c.logger = create_wasm_logger()
 
+	wasm_temp_allocator_init(&temp_allocator, 1 * mem.Megabyte)
+    c.temp_allocator = wasm_temp_allocator(&temp_allocator)
+
     return c
+}
+
+WASM_Temp_Allocator :: struct {
+	arena: runtime.Arena,
+}
+
+wasm_temp_allocator_init :: proc(s: ^WASM_Temp_Allocator, size: int, backing_allocator := context.allocator) {
+	_ = runtime.arena_init(&s.arena, uint(size), backing_allocator)
+}
+
+wasm_temp_allocator_proc :: proc(
+	allocator_data: rawptr,
+	mode: runtime.Allocator_Mode,
+	size, alignment: int,
+	old_memory: rawptr,
+	old_size: int,
+	loc := #caller_location) -> (data: []byte, err: runtime.Allocator_Error) {
+	s := (^WASM_Temp_Allocator)(allocator_data)
+	return runtime.arena_allocator_proc(&s.arena, mode, size, alignment, old_memory, old_size, loc)
+}
+
+wasm_temp_allocator :: proc(allocator: ^WASM_Temp_Allocator) -> runtime.Allocator {
+	return runtime.Allocator{
+		procedure = wasm_temp_allocator_proc,
+		data      = allocator,
+	}
 }
 
 Wasm_Logger_Opts :: log.Options{.Level, .Short_File_Path, .Line}
