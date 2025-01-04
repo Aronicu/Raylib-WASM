@@ -39,7 +39,7 @@ create_wasm_context :: proc "contextless" () -> runtime.Context {
 
     c.logger = create_wasm_logger()
 
-	wasm_temp_allocator_init(&temp_allocator, 1 * mem.Megabyte)
+	wasm_temp_allocator_init(&temp_allocator, 1 * mem.Megabyte, c.allocator)
     c.temp_allocator = wasm_temp_allocator(&temp_allocator)
 
     return c
