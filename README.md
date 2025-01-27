@@ -1,6 +1,10 @@
 # Raylib WASM
 A Template for making Odin, Raylib, and WASM (Emscripten) projects
 
+> [!WARNING]
+> This repository is now archived, Karl Zylinksi makes a better version of the template you can find it here:
+> [https://github.com/karl-zylinski/odin-raylib-web](https://github.com/karl-zylinski/odin-raylib-web)
+
 ## Features
 * Works well in Windows (It probably also works for the other desktop platforms but I didn't test it)
 * Logging on WASM Works!
